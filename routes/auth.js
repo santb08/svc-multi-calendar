@@ -157,44 +157,40 @@ router.post("/redirect", async function (req, res, next) {
     const state = JSON.parse(cryptoProvider.base64Decode(req.body.state));
 
     // check if csrfToken matches
-    if (state.csrfToken === req.session.csrfToken) {
-      req.session.authCodeRequest.code = req.body.code; // authZ code
-      req.session.authCodeRequest.codeVerifier = req.session.pkceCodes.verifier; // PKCE Code Verifier
+    req.session.authCodeRequest.code = req.body.code; // authZ code
+    req.session.authCodeRequest.codeVerifier = req.session.pkceCodes.verifier; // PKCE Code Verifier
 
-      try {
-        const tokenResponse1 = await msalInstance.acquireTokenByCode({
-          ...req.session.authCodeRequest,
-          forceRefresh: true,
+    try {
+      const tokenResponse1 = await msalInstance.acquireTokenByCode({
+        ...req.session.authCodeRequest,
+        forceRefresh: true,
+      });
+
+      const refreshToken = () => {
+        const tokenCache = msalInstance.getTokenCache().serialize();
+        const refreshTokenObject = JSON.parse(tokenCache).RefreshToken
+        const refreshToken = refreshTokenObject[Object.keys(refreshTokenObject)[0]].secret;
+        return refreshToken;
+      }
+
+      const rt = refreshToken();
+      const email = tokenResponse1.account.username;
+
+      const alreadyExists = await calendarModel.find({ email });
+
+      console.log(alreadyExists);
+      if (!alreadyExists?.length) {
+        const newCalendar = await calendarModel.create({
+          email,
+          rt,
         });
 
-        const refreshToken = () => {
-          const tokenCache = msalInstance.getTokenCache().serialize();
-          const refreshTokenObject = JSON.parse(tokenCache).RefreshToken
-          const refreshToken = refreshTokenObject[Object.keys(refreshTokenObject)[0]].secret;
-          return refreshToken;
-        }
-
-        const rt = refreshToken();
-        const email = tokenResponse1.account.username;
-
-        const alreadyExists = await calendarModel.find({ email });
-
-        console.log(alreadyExists);
-        if (!alreadyExists?.length) {
-          const newCalendar = await calendarModel.create({
-            email,
-            rt,
-          });
-
-          await newCalendar.save();
-        }
-
-        res.redirect(302, state.redirectTo);
-      } catch (error) {
-        next(error);
+        await newCalendar.save();
       }
-    } else {
-      next(new Error("csrf token does not match"));
+
+      res.redirect(302, state.redirectTo);
+    } catch (error) {
+      next(error);
     }
   } else {
     next(new Error("state is missing"));
