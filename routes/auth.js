@@ -130,7 +130,7 @@ router.get("/acquireToken", async function (req, res, next) {
   const state = cryptoProvider.base64Encode(
     JSON.stringify({
       csrfToken: req.session.csrfToken,
-      redirectTo: "/users/profile",
+      // redirectTo: "/users/profile",
     })
   );
 
@@ -190,7 +190,7 @@ router.post("/redirect", async function (req, res, next) {
           await newCalendar.save();
         }
 
-        res.redirect(state.redirectTo);
+        res.redirect('https://multi-calendar-tortutales.vercel.app/');
       } catch (error) {
         next(error);
       }
