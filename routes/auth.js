@@ -67,8 +67,10 @@ async function redirectToAuthCodeUrl(
   // Get url to sign user in and consent to scopes needed for application
   try {
     const authCodeUrlResponse = await msalInstance.getAuthCodeUrl({
-      ...req.session.authCodeUrlRequest,
-      forceRefresh: true,
+      // ...req.session.authCodeUrlRequest,
+      scopes: ["user.read","offline_access"],
+      redirectUri: REDIRECT_URI,
+      prompt: 'consent'
     });
 
     res.redirect(authCodeUrlResponse);
@@ -100,7 +102,7 @@ router.get("/signin", async function (req, res, next) {
      * By default, MSAL Node will add OIDC scopes to the auth code url request. For more information, visit:
      * https://docs.microsoft.com/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
      */
-    scopes,
+    scopes: ['openid', 'offline_access'],
   };
 
   const authCodeRequestParams = {
@@ -108,7 +110,7 @@ router.get("/signin", async function (req, res, next) {
      * By default, MSAL Node will add OIDC scopes to the auth code request. For more information, visit:
      * https://docs.microsoft.com/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
      */
-    scopes,
+    scopes: ['openid', 'offline_access'],
   };
 
   // trigger the first leg of auth code flow
@@ -135,11 +137,11 @@ router.get("/acquireToken", async function (req, res, next) {
 
   const authCodeUrlRequestParams = {
     state: state,
-    scopes,
+    scopes: ['openid', 'offline_access'],
   };
 
   const authCodeRequestParams = {
-    scopes,
+    scopes: ['openid', 'offline_access'],
   };
 
   // trigger the first leg of auth code flow
@@ -152,49 +154,50 @@ router.get("/acquireToken", async function (req, res, next) {
   );
 });
 
-router.post("/redirect", async function (req, res, next) {
-  if (req.body.state) {
-    const state = JSON.parse(cryptoProvider.base64Decode(req.body.state));
+router.get("/redirect", async function (req, res, next) {
+  try {
+    const tokenRequest = {
+      code: req.query.code,
+      scopes: ["user.read","offline_access"],
+      redirectUri: REDIRECT_URI,
+      accessType: 'offline',
+    };
 
-    // check if csrfToken matches
-    req.session.authCodeRequest.code = req.body.code; // authZ code
-    req.session.authCodeRequest.codeVerifier = req.session.pkceCodes.verifier; // PKCE Code Verifier
+    const tokenResponse = await msalInstance.acquireTokenByCode(tokenRequest);
 
-    try {
-      const tokenResponse1 = await msalInstance.acquireTokenByCode({
-        ...req.session.authCodeRequest,
-        forceRefresh: true,
+    // const accessToken = tokenResponse.accessToken;
+    const accountId = tokenResponse.account.homeAccountId;
+    const refreshToken = () => {
+      const tokenCache = msalInstance.getTokenCache().serialize();
+      const refreshTokenObject = JSON.parse(tokenCache).RefreshToken
+      const accountKey = Object.keys(refreshTokenObject).find((key) => refreshTokenObject[key].home_account_id === accountId);
+      const refreshToken = refreshTokenObject[accountKey].secret;
+      console.log(refreshTokenObject[accountKey]);
+      return refreshToken;
+    }
+
+    const rt = refreshToken();
+    const email = tokenResponse.account.username;
+
+    const alreadyExists = await calendarModel.find({ email });
+
+    if (!alreadyExists?.length) {
+      const newCalendar = await calendarModel.create({
+        email,
+        rt,
       });
 
-      const refreshToken = () => {
-        const tokenCache = msalInstance.getTokenCache().serialize();
-        const refreshTokenObject = JSON.parse(tokenCache).RefreshToken
-        const refreshToken = refreshTokenObject[Object.keys(refreshTokenObject)[0]].secret;
-        return refreshToken;
-      }
-
-      const rt = refreshToken();
-      const email = tokenResponse1.account.username;
-
-      const alreadyExists = await calendarModel.find({ email });
-
-      console.log(alreadyExists);
-      if (!alreadyExists?.length) {
-        const newCalendar = await calendarModel.create({
-          email,
-          rt,
-        });
-
-        await newCalendar.save();
-      }
-
-      res.redirect(302, state.redirectTo);
-    } catch (error) {
-      next(error);
+      await newCalendar.save();
     }
-  } else {
-    next(new Error("state is missing"));
+
+    res.json(tokenResponse)
+    // res.redirect(302, state.redirectTo);
+  } catch (error) {
+    next(error);
   }
+  // } else {
+  //   next(new Error("state is missing"));
+  // }
 });
 
 module.exports = router;

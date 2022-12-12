@@ -17,25 +17,33 @@ const getAuthenticatedClient = (accessToken) => {
 };
 
 const getCalendar = async (accessToken) => {
-  const client = getAuthenticatedClient(accessToken);
-  const startOfMonth = moment().startOf('month').format('YYYY-MM-DD hh:mm');
-  const endOfMonth   = moment().endOf('month').format('YYYY-MM-DD hh:mm');
+  try {
+    const client = getAuthenticatedClient(accessToken);
+    const startOfMonth = moment().startOf('month').format('YYYY-MM-DD hh:mm');
+    const endOfMonth   = moment().endOf('month').format('YYYY-MM-DD hh:mm');
 
-  const { value: events } = await client
-    .api('/me/calendarview')
-    // Add Prefer header to get back times in user's timezone
-    // .header("Prefer", `outlook.timezone="${timeZone}"`)
-    // Add the begin and end of the calendar window
-    .query({ startDateTime: startOfMonth, endDateTime: endOfMonth })
-    // Get just the properties used by the app
-    .select('subject,organizer,start,end')
-    // Order by start time
-    .orderby('start/dateTime')
-    // Get at most 50 results
-    .top(50)
-    .get();
+    const a = await client.api('/me').get();
+    console.log('[Fetching Calendars For]', accessToken, a);
 
-  return events;
+    const { value: events } = await client
+      .api('/me/calendarview')
+      // Add Prefer header to get back times in user's timezone
+      // .header("Prefer", `outlook.timezone="${timeZone}"`)
+      // Add the begin and end of the calendar window
+      .query({ startDateTime: startOfMonth, endDateTime: endOfMonth })
+      // Get just the properties used by the app
+      .select('subject,organizer,start,end')
+      // Order by start time
+      .orderby('start/dateTime')
+      // Get at most 50 results
+      .top(50)
+      .get();
+
+    return events;
+  } catch (error) {
+    console.error(error);
+    return []
+  }
 };
 
 module.exports = {
