@@ -71,7 +71,6 @@ async function redirectToAuthCodeUrl(
       forceRefresh: true,
     });
 
-    console.log(authCodeUrlResponse);
     res.redirect(authCodeUrlResponse);
   } catch (error) {
     next(error);
@@ -90,7 +89,7 @@ router.get("/signin", async function (req, res, next) {
   const state = cryptoProvider.base64Encode(
     JSON.stringify({
       csrfToken: req.session.csrfToken,
-      redirectTo: req.redirectTo,
+      redirectTo: process.env.SUCCESS_URI,
     })
   );
 
@@ -130,7 +129,7 @@ router.get("/acquireToken", async function (req, res, next) {
   const state = cryptoProvider.base64Encode(
     JSON.stringify({
       csrfToken: req.session.csrfToken,
-      // redirectTo: "/users/profile",
+      redirectTo: "/users/profile",
     })
   );
 
@@ -190,7 +189,7 @@ router.post("/redirect", async function (req, res, next) {
           await newCalendar.save();
         }
 
-        res.redirect(state.redirectTo);
+        res.redirect(302, state.redirectTo);
       } catch (error) {
         next(error);
       }
@@ -201,18 +200,5 @@ router.post("/redirect", async function (req, res, next) {
     next(new Error("state is missing"));
   }
 });
-
-router.get('/refresh', async (req, res) => {
-  // const { accessToken } = req.params;
-  console.log('xd');
-
-  const token = await msalInstance.acquireTokenByRefreshToken({
-    scopes,
-    refreshToken: 'M.R3_BAY.-CSLVwq9qG2SDg1V1VsyDLzjplojQgSmUDKItiCajliUlEf4Y7htpB96azJJBmrxHDIXSJIiK0uEnUdf6ODLr7oEN*frYTJdR6PyCKD8Hy3hxtXNKl7B9pRh6P*LLCrqKjmICwAC6s9s1mcnlWwgPKCNZSN9dj5eIZe0ohtBZHxkPkztvGUlt1hvx37NesVD6Sx4PMuREgOUWynPxXV*!fEvNMMZ66y4!Fi4BRxHwqPD6Z6Lk*ZDzPLjGkVKQa19n!cdI5kNRzc6vCysgZXL9fV5yV7K7IzHRFtW91PHlWjPYtIAKlQUdtE6vlpI4OO3LZw$$',
-  });
-
-  console.log(token);
-  res.send(token);
-})
 
 module.exports = router;
