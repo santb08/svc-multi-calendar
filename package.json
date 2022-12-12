@@ -12,6 +12,7 @@
   "dependencies": {
     "@azure/msal-node": "1.14.5",
     "@microsoft/microsoft-graph-client": "3.0.4",
+    "aws-sdk": "^2.1272.0",
     "axios": "1.2.1",
     "cookie-parser": "1.4.4",
     "debug": "2.6.9",
