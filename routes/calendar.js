@@ -25,16 +25,19 @@ router.get('/', async (_, res) => {
 
     console.log('[Tokens]', tokens);
     for (const token of tokens) {
-      const { accessToken } = await msalInstance.acquireTokenByRefreshToken({
-        scopes: ['Calendars.Read', 'User.Read'],
-        refreshToken: token,
-      });
+      try {
+        const { accessToken } = await msalInstance.acquireTokenByRefreshToken({
+          scopes: ['Calendars.Read', 'User.Read'],
+          refreshToken: token,
+        });
 
-      console.log('[Access Token]', accessToken);
-
-      const calendar = await getCalendar(accessToken);
-
-      calendars.push(...mapCalendar(calendar));
+        console.log('[Access Token]', accessToken);
+        const calendar = await getCalendar(accessToken);
+        calendars.push(...mapCalendar(calendar));
+      } catch (error) {
+        console.error(error);
+        continue;
+      }
     };
 
     res.status(200).send({
