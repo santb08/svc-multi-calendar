@@ -190,14 +190,10 @@ router.get("/redirect", async function (req, res, next) {
       await newCalendar.save();
     }
 
-    res.json(tokenResponse)
-    // res.redirect(302, state.redirectTo);
+    res.redirect('https://multi-calendar-tortutales.vercel.app/');
   } catch (error) {
     next(error);
   }
-  // } else {
-  //   next(new Error("state is missing"));
-  // }
 });
 
 module.exports = router;

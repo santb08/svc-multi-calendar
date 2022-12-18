@@ -18,13 +18,13 @@ const mapCalendar = (calendarData) => {
 }
 
 router.get('/', async (_, res) => {
-  const data = await calendarModel.find({});
-  const tokens = data.map(item => item.rt);
-  const calendars = [];
+  try {
+    const data = await calendarModel.find({});
+    const tokens = data.map(item => item.rt);
+    const calendars = [];
 
-  console.log('[Tokens]', tokens);
-  for (const token of tokens) {
-    try {
+    console.log('[Tokens]', tokens);
+    for (const token of tokens) {
       const { accessToken } = await msalInstance.acquireTokenByRefreshToken({
         scopes: ['Calendars.Read', 'User.Read'],
         refreshToken: token,
@@ -35,15 +35,18 @@ router.get('/', async (_, res) => {
       const calendar = await getCalendar(accessToken);
 
       calendars.push(...mapCalendar(calendar));
+    };
 
-    } catch (error) {
-      continue;
-    }
-  };
-
-  res.status(200).send({
-    calendars,
-  });
+    res.status(200).send({
+      calendars,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({
+      error: error.message,
+      calendars: [],
+    });
+  }
 });
 
 
