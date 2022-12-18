@@ -57,4 +57,5 @@ router.get('/list', async (req, res) => {
   const calendars = await calendarModel.find({}, { email: 1 });
   res.status(200).send(calendars);
 });
+
 module.exports = router;

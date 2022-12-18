@@ -68,7 +68,7 @@ async function redirectToAuthCodeUrl(
   try {
     const authCodeUrlResponse = await msalInstance.getAuthCodeUrl({
       // ...req.session.authCodeUrlRequest,
-      scopes: ["user.read","offline_access"],
+      scopes: ["user.read","offline_access", 'Calendars.Read'],
       redirectUri: REDIRECT_URI,
       prompt: 'consent'
     });
@@ -158,7 +158,7 @@ router.get("/redirect", async function (req, res, next) {
   try {
     const tokenRequest = {
       code: req.query.code,
-      scopes: ["user.read","offline_access"],
+      scopes: ["user.read","offline_access", 'Calendars.Read'],
       redirectUri: REDIRECT_URI,
       accessType: 'offline',
     };
